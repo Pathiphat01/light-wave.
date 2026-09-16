@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LIGHT WAVE LAB</title>
+<style>
+:root{--bg:#071426;--panel:#10233b;--text:#eef8ff;--muted:#a9c0d5;--accent:#64e9ff;--good:#6cff9c;--bad:#ff6b7a;--gold:#ffd86b}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;background:radial-gradient(circle at top,#16385b,#071426 55%);color:var(--text);min-height:100vh}
+.wrap{max-width:1000px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:900;letter-spacing:1px;font-size:clamp(22px,4vw,36px)} .stats{display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:#0d1d31;border:1px solid #284765;padding:8px 12px;border-radius:999px}
+.card{background:rgba(13,29,49,.94);border:1px solid #284765;border-radius:22px;padding:18px;margin-top:16px;box-shadow:0 18px 50px #0006}
+h1,h2,p{margin-top:0}.muted{color:var(--muted)}button{border:0;border-radius:14px;padding:12px 18px;font-size:16px;font-weight:800;cursor:pointer;background:var(--accent);color:#03202a}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}button.secondary{background:#223a55;color:white}.center{text-align:center}.hidden{display:none!important}
+#gameCanvas{display:block;width:100%;height:auto;background:linear-gradient(#06101c,#091c30);border-radius:18px;border:1px solid #31506d;touch-action:none}
+.controls{display:flex;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap}.controls button{min-width:120px}
+.quiz{max-width:700px;margin:auto}.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}.answer{background:#1a3854;color:white;border:1px solid #315777;text-align:left}
+.answer.correct{background:#195c3a}.answer.wrong{background:#6c2530}.progress{height:10px;background:#14283e;border-radius:99px;overflow:hidden;margin-top:12px}.bar{height:100%;background:linear-gradient(90deg,#64e9ff,#6cff9c);width:0}
+.big{font-size:clamp(42px,9vw,82px);margin:8px}.tip{background:#0a1728;border-left:4px solid var(--accent);padding:12px;border-radius:10px}
+@media(max-width:600px){.answers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">🌈 LIGHT WAVE LAB</div>
+    <div class="stats">
+      <div class="badge">ด่าน <b id="stageTxt">1/5</b></div>
+      <div class="badge">⭐ <b id="scoreTxt">0</b></div>
+      <div class="badge">❤️ <b id="lifeTxt">3</b></div>
+      <div class="badge">🔥 x<b id="comboTxt">0</b></div>
+    </div>
+  </div>
+
+  <section id="start" class="card center">
+    <div class="big">🔦🪞💎</div>
+    <h1>ภารกิจพิชิตคลื่นแสง</h1>
+    <p class="muted">หมุนอุปกรณ์ให้ลำแสงไปถึง Crystal แล้วตอบคำถามฟิสิกส์เพื่อปลดล็อกด่านต่อไป</p>
+    <div class="tip">วิธีเล่น: กดปุ่ม ◀ หมุน / หมุน ▶ เพื่อปรับอุปกรณ์ เมื่อเส้นแสงชน Crystal จะเข้าสู่คำถามทันที</div>
+    <p style="margin-top:16px"><button onclick="startGame()">เริ่มเกม</button></p>
+  </section>
+
+  <section id="play" class="card hidden">
+    <h2 id="stageName"></h2>
+    <p id="stageHelp" class="muted"></p>
+    <canvas id="gameCanvas" width="900" height="480"></canvas>
+    <div class="controls">
+      <button class="secondary" onclick="rotate(-5)">◀ หมุน</button>
+      <button onclick="fire()">ยิงแสง ⚡</button>
+      <button class="secondary" onclick="rotate(5)">หมุน ▶</button>
+    </div>
+    <div class="progress"><div id="bar" class="bar"></div></div>
+  </section>
+
+  <section id="quiz" class="card quiz hidden">
+    <div class="center"><div class="big">🚪</div><h2>QUIZ GATE</h2></div>
+    <p id="question" style="font-size:20px;font-weight:800"></p>
+    <div id="answers" class="answers"></div>
+    <p id="feedback" class="center" style="font-weight:800;margin-top:14px"></p>
+  </section>
+
+  <section id="end" class="card center hidden">
+    <div class="big">🏆</div><h1>ภารกิจเสร็จสิ้น!</h1>
+    <h2>คะแนนรวม <span id="finalScore"></span></h2>
+    <p id="rank"></p><button onclick="location.reload()">เล่นอีกครั้ง</button>
+  </section>
+</div>
+
+<script>
+const stages=[
+ {name:"ด่าน 1: การสะท้อนของแสง",help:"หมุนกระจกให้ลำแสงสะท้อนไปโดน Crystal",target:35,
+  q:"ถ้ามุมตกกระทบเท่ากับ 35° มุมสะท้อนมีค่าเท่าใด?",a:["25°","35°","55°","70°"],c:1,ex:"ถูกต้อง! กฎการสะท้อนระบุว่า มุมตกกระทบ = มุมสะท้อน"},
+ {name:"ด่าน 2: การหักเหของแสง",help:"ปรับแผ่นแก้วจำลองให้ลำแสงเบนเข้าหาเป้าหมาย",target:-20,
+  q:"เมื่อแสงเดินทางจากอากาศเข้าสู่แก้ว โดยทั่วไปแสงจะเกิดอะไรขึ้น?",a:["เบนเข้าหาเส้นปกติ","เบนออกจากเส้นปกติ","หยุดเดินทาง","ไม่มีการเปลี่ยนแปลง"],c:0,ex:"ใช่! เมื่อเข้าสู่ตัวกลางที่มีดัชนีหักเหมากขึ้น แสงจะเบนเข้าหาเส้นปกติ"},
+ {name:"ด่าน 3: การกระจายแสง",help:"หมุนปริซึมจนแสงขาวไปถึง Crystal",target:15,
+  q:"สีใดมีความยาวคลื่นมากที่สุดในแสงที่ตามองเห็น?",a:["ม่วง","น้ำเงิน","เขียว","แดง"],c:3,ex:"ถูกต้อง! แสงสีแดงมีความยาวคลื่นมากกว่าสีอื่นในช่วงแสงที่มองเห็น"},
+ {name:"ด่าน 4: การแทรกสอด",help:"ปรับแหล่งกำเนิดคลื่นให้แนวลำแสงผ่านช่องและถึงตัวรับ",target:-35,
+  q:"การแทรกสอดแบบเสริมเกิดขึ้นเมื่อคลื่นสองขบวนมีลักษณะอย่างไร?",a:["หักล้างกันพอดี","สันคลื่นตรงกับสันคลื่น","มีความเร็วเป็นศูนย์","เดินทางคนละตัวกลางเท่านั้น"],c:1,ex:"ถูกต้อง! สันตรงกับสันหรือท้องตรงกับท้องทำให้แอมพลิจูดรวมเพิ่มขึ้น"},
+ {name:"FINAL: ภารกิจรวมคลื่นแสง",help:"ปรับอุปกรณ์สุดท้ายเพื่อส่งพลังงานแสงเข้าสู่ Crystal หลัก",target:25,
+  q:"ข้อใดเป็นหลักฐานสำคัญที่แสดงว่าแสงมีสมบัติเป็นคลื่น?",a:["การแทรกสอดและการเลี้ยวเบน","การตกอย่างอิสระ","แรงโน้มถ่วง","การนำความร้อน"],c:0,ex:"ยอดเยี่ยม! การแทรกสอดและการเลี้ยวเบนเป็นปรากฏการณ์เด่นของคลื่น"}
+];
+let stage=0,score=0,lives=3,combo=0,angle=0,shot=false,anim=0;
+const $=id=>document.getElementById(id), cv=$("gameCanvas"),ctx=cv.getContext("2d");
+function sync(){ $("stageTxt").textContent=(stage+1)+"/5";$("scoreTxt").textContent=score;$("lifeTxt").textContent=lives;$("comboTxt").textContent=combo;$("bar").style.width=(stage/5*100)+"%"}
+function show(id){["start","play","quiz","end"].forEach(x=>$(x).classList.add("hidden"));$(id).classList.remove("hidden")}
+function startGame(){show("play");loadStage()}
+function loadStage(){angle=stage%2?0:0;shot=false;$("stageName").textContent=stages[stage].name;$("stageHelp").textContent=stages[stage].help;sync();draw()}
+function rotate(d){angle=Math.max(-60,Math.min(60,angle+d));shot=false;draw()}
+function fire(){shot=true;anim=0;animate()}
+function beamEnd(){
+ const good=Math.abs(angle-stages[stage].target)<=5;
+ return good?{x:790,y:240}:{x:790,y:240-Math.tan((angle-stages[stage].target)*Math.PI/180)*380}
+}
+function animate(){anim+=.055;draw(); if(anim<1) requestAnimationFrame(animate); else {let e=beamEnd();if(Math.abs(e.y-240)<35){score+=100;sync();setTimeout(openQuiz,350)} else {combo=0;sync()}}}
+function draw(){
+ ctx.clearRect(0,0,900,480);
+ ctx.fillStyle="#9bdfff";ctx.beginPath();ctx.arc(90,240,28,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.font="18px sans-serif";ctx.fillText("LIGHT",58,295);
+ // device
+ ctx.save();ctx.translate(450,240);ctx.rotate(angle*Math.PI/180);ctx.fillStyle=stage==2?"#a9f1ff":"#d6e5f3";ctx.fillRect(-8,-70,16,140);ctx.restore();
+ ctx.fillStyle="#ffd86b";ctx.beginPath();ctx.moveTo(820,210);ctx.lineTo(850,240);ctx.lineTo(820,270);ctx.lineTo(790,240);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#fff";ctx.font="18px sans-serif";ctx.fillText("CRYSTAL",775,305);
+ ctx.strokeStyle="#274966";ctx.lineWidth=2;ctx.setLineDash([8,8]);ctx.beginPath();ctx.moveTo(90,240);ctx.lineTo(820,240);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle="#a9c0d5";ctx.font="17px sans-serif";ctx.fillText("มุมอุปกรณ์: "+angle+"°",380,420);
+ if(shot){
+   let e=beamEnd(),p=Math.min(anim,1);ctx.strokeStyle=stage==2?"#ffffff":"#64e9ff";ctx.lineWidth=7;ctx.shadowBlur=18;ctx.shadowColor=ctx.strokeStyle;
+   ctx.beginPath();ctx.moveTo(115,240);ctx.lineTo(450,240);let ex=450+(e.x-450)*p,ey=240+(e.y-240)*p;ctx.lineTo(ex,ey);ctx.stroke();ctx.shadowBlur=0;
+ }
+}
+function openQuiz(){show("quiz");let s=stages[stage];$("question").textContent=s.q;$("feedback").textContent="";let box=$("answers");box.innerHTML="";s.a.forEach((x,i)=>{let b=document.createElement("button");b.className="answer";b.textContent=String.fromCharCode(65+i)+". "+x;b.onclick=()=>answer(i,b);box.appendChild(b)})}
+function answer(i,b){
+ let s=stages[stage];[...$("answers").children].forEach(x=>x.disabled=true);
+ if(i===s.c){b.classList.add("correct");combo++;score+=50+(combo-1)*10;$("feedback").textContent="✅ "+s.ex;sync();setTimeout(next,1200)}
+ else{b.classList.add("wrong");$("answers").children[s.c].classList.add("correct");lives--;combo=0;$("feedback").textContent="❌ ยังไม่ถูก — คำตอบที่ถูกคือ "+s.a[s.c];sync();setTimeout(()=>{if(lives<=0)finish();else next()},1500)}
+}
+function next(){stage++;if(stage>=stages.length)finish();else{show("play");loadStage()}}
+function finish(){show("end");$("finalScore").textContent=score+" คะแนน";let r=score>=700?"🌟 นักฟิสิกส์แห่งแสงระดับ Master":score>=500?"✨ นักสำรวจคลื่นแสงระดับ Expert":"🔦 นักสำรวจคลื่นแสง";$("rank").textContent=r}
+draw();
+</script>
+</body>
+</html>
